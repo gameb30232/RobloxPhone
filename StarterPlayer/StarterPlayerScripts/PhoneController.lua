@@ -4,127 +4,116 @@ local Players = game:GetService("Players")
 local spring = require(game:GetService("ReplicatedStorage"):WaitForChild("modules"):WaitForChild("spring"))
 local theme = require(game:GetService("ReplicatedStorage").modules.phoneTheme)
 
--- Wait for player and UI to load
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local PhoneUI = playerGui:WaitForChild("PhoneUI")
-local PhoneFrame = PhoneUI:WaitForChild("PhoneFrame")
-local Screen = PhoneFrame:WaitForChild("Screen")
+-- Phone states enum
+local PhoneState = {
+    OFF = "off",        -- Phone is peeking, screen off
+    HOME = "home",      -- Home screen visible
+    APP = "app"         -- Specific app running
+}
 
--- Position settings
-local SHOWN_POSITION = UDim2.fromScale(0.85, 0.5)  -- Phone fully visible
-local PEEK_POSITION = UDim2.fromScale(0.85, 0.99)  -- Only shows a tiny bit at the top
+-- Pure function to create initial state
+local function createInitialState()
+    return {
+        isShown = false,
+        screenState = PhoneState.OFF,
+        currentApp = nil,
+        lastActiveApp = nil,  -- Remember last active app when phone is hidden
+        position = UDim2.fromScale(0.85, 0.99), -- PEEK_POSITION
+        screenOn = false
+    }
+end
 
--- State
-local isShown = false
+-- Constants
+local POSITIONS = {
+    SHOWN = UDim2.fromScale(0.85, 0.5),
+    PEEK = UDim2.fromScale(0.85, 0.99)
+}
 
--- Function to animate the phone using spring
-local function setPhonePosition(position)
-    spring.target(PhoneFrame, 0.8, 1, {
+-- Pure functions for state transformations
+local function getNextPhoneState(currentState)
+    if currentState.isShown then
+        -- Phone is being hidden
+        return {
+            isShown = false,
+            screenState = PhoneState.OFF,
+            currentApp = currentState.currentApp,  -- Preserve current app
+            lastActiveApp = currentState.currentApp,  -- Remember active app
+            position = POSITIONS.PEEK,
+            screenOn = false
+        }
+    else
+        -- Phone is being shown
+        return {
+            isShown = true,
+            screenState = currentState.lastActiveApp and PhoneState.APP or PhoneState.HOME,
+            currentApp = currentState.lastActiveApp or nil,
+            lastActiveApp = currentState.lastActiveApp,
+            position = POSITIONS.SHOWN,
+            screenOn = true
+        }
+    end
+end
+
+local function getNextAppState(currentState, appName)
+    return {
+        isShown = currentState.isShown,
+        screenState = PhoneState.APP,
+        currentApp = appName,
+        lastActiveApp = appName,
+        position = currentState.position,
+        screenOn = currentState.screenOn
+    }
+end
+
+local function getHomeState(currentState)
+    return {
+        isShown = currentState.isShown,
+        screenState = PhoneState.HOME,
+        currentApp = nil,
+        lastActiveApp = nil,
+        position = currentState.position,
+        screenOn = currentState.screenOn
+    }
+end
+
+-- Pure functions for UI updates
+local function updatePhonePosition(frame, position)
+    spring.target(frame, 0.8, 1, {
         Position = position
     })
 end
 
--- Function to toggle screen state
-local function setScreenState(on)
-    if on then
-        spring.target(Screen, 0.3, 0.8, {
-            BackgroundTransparency = 0
-        })
-        -- Fade in all children
-        for _, child in ipairs(Screen:GetDescendants()) do
-            if child:IsA("GuiObject") then
-                spring.target(child, 0.3, 0.8, {
-                    BackgroundTransparency = child.BackgroundTransparency < 1 and 0 or 1,
-                    TextTransparency = child:IsA("TextLabel") and 0 or child.TextTransparency,
-                    ImageTransparency = child:IsA("ImageLabel") and 0 or child.ImageTransparency
-                })
-            end
-        end
-    else
-        spring.target(Screen, 0.2, 0.9, {
-            BackgroundTransparency = 0.8
-        })
-        -- Fade out all children
-        for _, child in ipairs(Screen:GetDescendants()) do
-            if child:IsA("GuiObject") then
-                spring.target(child, 0.2, 0.9, {
-                    BackgroundTransparency = 1,
-                    TextTransparency = 1,
-                    ImageTransparency = 1
-                })
-            end
+local function updateScreenVisibility(screen, isOn)
+    -- Base screen transparency
+    spring.target(screen, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
+        BackgroundTransparency = isOn and 0 or 0.8
+    })
+    
+    -- Update all GUI elements
+    for _, child in ipairs(screen:GetDescendants()) do
+        if child:IsA("GuiObject") then
+            spring.target(child, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
+                BackgroundTransparency = child.BackgroundTransparency < 1 and (isOn and 0 or 1) or 1,
+                TextTransparency = child:IsA("TextLabel") and (isOn and 0 or 1) or child.TextTransparency,
+                ImageTransparency = child:IsA("ImageLabel") and (isOn and 0 or 1) or child.ImageTransparency
+            })
         end
     end
 end
 
--- Function to handle phone visibility states
-local function togglePhone()
-    isShown = not isShown
-    setPhonePosition(isShown and SHOWN_POSITION or PEEK_POSITION)
-    setScreenState(isShown)
-end
-
--- Handle clicking outside the phone
-local function handleOutsideClick(input)
-    if not isShown then return end
+local function updateAppVisibility(screen, state)
+    local homeScreen = screen:WaitForChild("HomeScreen")
+    homeScreen.Visible = state.screenState == PhoneState.HOME
     
-    local position = input.Position
-    local phoneFrame = PhoneFrame.AbsolutePosition
-    local phoneSize = PhoneFrame.AbsoluteSize
-    
-    -- Check if click is outside phone bounds
-    if position.X < phoneFrame.X or 
-       position.X > phoneFrame.X + phoneSize.X or
-       position.Y < phoneFrame.Y or
-       position.Y > phoneFrame.Y + phoneSize.Y then
-        togglePhone()
+    -- Update app visibilities
+    for _, app in ipairs(screen:GetChildren()) do
+        if app:IsA("Frame") and app.Name:match("App$") then
+            app.Visible = state.screenState == PhoneState.APP and app.Name == state.currentApp
+        end
     end
 end
 
--- Connect input events
-PhoneFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or
-       input.UserInputType == Enum.UserInputType.Touch then
-        togglePhone()
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or
-       input.UserInputType == Enum.UserInputType.Touch then
-        handleOutsideClick(input)
-    end
-end)
-
--- Initialize phone in peeking position with screen off
-PhoneFrame.Position = PEEK_POSITION
-setScreenState(false)
-
--- Adjust phone position based on screen size
-local function adjustForScreenSize()
-    local viewportSize = workspace.CurrentCamera.ViewportSize
-    local aspectRatio = viewportSize.X / viewportSize.Y
-    
-    if aspectRatio < 1.2 then
-        PEEK_POSITION = UDim2.fromScale(0.85, 0.985)
-    else
-        PEEK_POSITION = UDim2.fromScale(0.85, 0.99)
-    end
-    
-    if not isShown then
-        setPhonePosition(PEEK_POSITION)
-    end
-end
-
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(adjustForScreenSize)
-adjustForScreenSize()
-
--- Initialize HomeScreen as default app
-local HomeScreen = Screen:WaitForChild("HomeScreen")
-HomeScreen.Visible = true
-
--- Add bouncy animation for that clay-animation feel
+-- UI effect functions
 local function addBouncyEffect(button)
     button.MouseEnter:Connect(function()
         spring.target(button, 
@@ -147,9 +136,114 @@ local function addBouncyEffect(button)
     end)
 end
 
--- Apply bouncy effect to all app buttons
-for _, button in ipairs(HomeScreen:GetChildren()) do
-    if button:IsA("ImageButton") then
-        addBouncyEffect(button)
+-- Main phone controller
+local function createPhoneController()
+    -- Initialize references
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    local PhoneUI = playerGui:WaitForChild("PhoneUI")
+    local PhoneFrame = PhoneUI:WaitForChild("PhoneFrame")
+    local Screen = PhoneFrame:WaitForChild("Screen")
+    local HomeScreen = Screen:WaitForChild("HomeScreen")
+    
+    -- Initialize state
+    local state = createInitialState()
+    
+    -- State update function
+    local function updateState(newState)
+        -- Update internal state
+        state = newState
+        
+        -- Update UI based on new state
+        updatePhonePosition(PhoneFrame, state.position)
+        updateScreenVisibility(Screen, state.screenOn)
+        updateAppVisibility(Screen, state)
     end
-end 
+    
+    -- Input handlers
+    local function handlePhoneClick()
+        updateState(getNextPhoneState(state))
+    end
+    
+    local function handleOutsideClick(input)
+        if not state.isShown then return end
+        
+        local position = input.Position
+        local phoneFrame = PhoneFrame.AbsolutePosition
+        local phoneSize = PhoneFrame.AbsoluteSize
+        
+        if position.X < phoneFrame.X or 
+           position.X > phoneFrame.X + phoneSize.X or
+           position.Y < phoneFrame.Y or
+           position.Y > phoneFrame.Y + phoneSize.Y then
+            updateState(getNextPhoneState(state))
+        end
+    end
+    
+    -- Initialize UI and connect app buttons
+    for _, button in ipairs(HomeScreen:GetChildren()) do
+        if button:IsA("ImageButton") then
+            -- Add click handler for app launching
+            button.MouseButton1Click:Connect(function()
+                if state.screenState == PhoneState.HOME then
+                    updateState(getNextAppState(state, button.Name))
+                end
+            end)
+            addBouncyEffect(button)
+        end
+    end
+    
+    -- Connect events
+    PhoneFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or
+           input.UserInputType == Enum.UserInputType.Touch then
+            handlePhoneClick()
+        end
+    end)
+    
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or
+           input.UserInputType == Enum.UserInputType.Touch then
+            handleOutsideClick(input)
+        end
+    end)
+    
+    -- Screen size adjustment
+    local function adjustForScreenSize()
+        local viewportSize = workspace.CurrentCamera.ViewportSize
+        local aspectRatio = viewportSize.X / viewportSize.Y
+        
+        POSITIONS.PEEK = UDim2.fromScale(0.85, aspectRatio < 1.2 and 0.985 or 0.99)
+        
+        if not state.isShown then
+            updatePhonePosition(PhoneFrame, POSITIONS.PEEK)
+        end
+    end
+    
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(adjustForScreenSize)
+    adjustForScreenSize()
+    
+    -- Initialize UI state
+    updateState(state)
+    
+    -- Return controller interface
+    return {
+        getState = function() return table.clone(state) end,
+        switchApp = function(appName) 
+            updateState(getNextAppState(state, appName))
+        end,
+        goHome = function()
+            updateState(getHomeState(state))
+        end,
+        getCurrentApp = function()
+            return state.currentApp
+        end,
+        isShown = function()
+            return state.isShown
+        end
+    }
+end
+
+-- Create and store controller
+local phoneController = createPhoneController()
+return phoneController 
