@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local spring = require(game:GetService("ReplicatedStorage").modules.spring)
 local theme = require(game:GetService("ReplicatedStorage").modules.phoneTheme)
 local walletData = require(game:GetService("ReplicatedStorage").modules.walletData)
+local HomeScreenController = require(script.Parent.HomeScreenController)
 
 local WalletController = {}
 
@@ -80,6 +81,20 @@ end
 
 -- Initialize wallet data
 function WalletController:init()
+    -- Register wallet app on home screen
+    HomeScreenController:registerApp({
+        name = "WalletApp",
+        displayName = "Wallet",
+        icon = "rbxassetid://YOUR_WALLET_ICON_ID", -- Replace with actual wallet icon asset
+        order = 1,
+        onActivated = function()
+            -- This will be called when the app icon is clicked
+            if PhoneController then
+                PhoneController.switchApp("WalletApp")
+            end
+        end
+    })
+    
     -- Load wallet data
     local wallet = walletData:getWallet(player.UserId)
     if wallet then
