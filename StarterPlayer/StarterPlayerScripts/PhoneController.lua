@@ -12,13 +12,11 @@ local Screen = PhoneFrame:WaitForChild("Screen")
 local DynamicIsland = Screen:WaitForChild("DynamicIsland")
 
 -- Position settings
-local SHOWN_POSITION = UDim2.fromScale(0.85, 0.5)
-local PEEK_POSITION = UDim2.fromScale(0.85, 0.92) -- Shows just the top of the phone
-local HIDDEN_POSITION = UDim2.fromScale(0.85, 1.2)
+local SHOWN_POSITION = UDim2.fromScale(0.85, 0.5)  -- Phone fully visible
+local PEEK_POSITION = UDim2.fromScale(0.85, 0.99)  -- Only shows a tiny bit at the top
 
 -- State
 local isShown = false
-local isPeeking = true
 
 -- Function to animate the phone using spring
 local function setPhonePosition(position)
@@ -29,17 +27,8 @@ end
 
 -- Function to handle phone visibility states
 local function togglePhone()
-    if isShown then
-        -- If phone is shown, hide it but keep peeking
-        isShown = false
-        isPeeking = true
-        setPhonePosition(PEEK_POSITION)
-    else
-        -- If phone is peeking or hidden, show it
-        isShown = true
-        isPeeking = false
-        setPhonePosition(SHOWN_POSITION)
-    end
+    isShown = not isShown
+    setPhonePosition(isShown and SHOWN_POSITION or PEEK_POSITION)
 end
 
 -- Handle clicking outside the phone
@@ -85,16 +74,20 @@ local function adjustForScreenSize()
     -- Adjust peek position based on screen aspect ratio
     if aspectRatio < 1.2 then
         -- For taller/narrower screens
-        PEEK_POSITION = UDim2.fromScale(0.85, 0.90)
+        PEEK_POSITION = UDim2.fromScale(0.85, 0.985)  -- Shows just a tiny bit
     else
         -- For wider screens
-        PEEK_POSITION = UDim2.fromScale(0.85, 0.92)
+        PEEK_POSITION = UDim2.fromScale(0.85, 0.99)  -- Shows just a tiny bit
     end
     
     if not isShown then
-        setPhonePosition(isPeeking and PEEK_POSITION or HIDDEN_POSITION)
+        setPhonePosition(PEEK_POSITION)
     end
 end
 
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(adjustForScreenSize)
-adjustForScreenSize() 
+adjustForScreenSize()
+
+-- Initialize HomeScreen as default app
+local HomeScreen = Screen:WaitForChild("HomeScreen")
+HomeScreen.Visible = true 
