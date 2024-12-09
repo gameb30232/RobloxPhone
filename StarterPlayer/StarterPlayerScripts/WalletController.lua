@@ -1,12 +1,13 @@
 local Players = game:GetService("Players")
 local spring = require(game:GetService("ReplicatedStorage").modules.spring)
+local theme = require(game:GetService("ReplicatedStorage").modules.phoneTheme)
+local walletData = require(game:GetService("ReplicatedStorage").modules.walletData)
 
 local WalletController = {}
 
 -- Screen states enum
 WalletController.Screens = {
     WELCOME = "WelcomeScreen",
-    CREATE = "CreateWalletScreen",
     MAIN = "MainScreen",
     SEND = "SendScreen",
     RECEIVE = "ReceiveScreen",
@@ -29,12 +30,35 @@ local Screen = PhoneUI.PhoneFrame:WaitForChild("Screen")
 local WalletApp = Screen:WaitForChild("WalletApp")
 local Screens = WalletApp:WaitForChild("Screens")
 
--- Screen transition function
+-- Add bouncy effect to buttons
+local function addBouncyEffect(button)
+    button.MouseEnter:Connect(function()
+        spring.target(button, 
+            theme.animations.bounce.springParams.frequency,
+            theme.animations.bounce.springParams.dampingRatio,
+            {
+                Size = button.Size * UDim2.fromScale(1.1, 1.1)
+            }
+        )
+    end)
+    
+    button.MouseLeave:Connect(function()
+        spring.target(button,
+            theme.animations.bounce.springParams.frequency,
+            theme.animations.bounce.springParams.dampingRatio,
+            {
+                Size = button.Size
+            }
+        )
+    end)
+end
+
+-- Screen transition function with clay animation feel
 local function transitionToScreen(screenName)
     -- Fade out current screen
     local currentScreen = Screens:FindFirstChild(state.currentScreen)
     if currentScreen then
-        spring.target(currentScreen, 0.3, 0.8, {
+        spring.target(currentScreen, 0.4, 0.7, {
             Position = UDim2.fromScale(-1, 0.5),
             BackgroundTransparency = 1
         })
@@ -45,7 +69,7 @@ local function transitionToScreen(screenName)
     if newScreen then
         newScreen.Position = UDim2.fromScale(1, 0.5)
         newScreen.Visible = true
-        spring.target(newScreen, 0.3, 0.8, {
+        spring.target(newScreen, 0.4, 0.7, {
             Position = UDim2.fromScale(0.5, 0.5),
             BackgroundTransparency = 0
         })
@@ -54,25 +78,46 @@ local function transitionToScreen(screenName)
     state.currentScreen = screenName
 end
 
--- Public methods
+-- Initialize wallet data
 function WalletController:init()
-    -- Register with HomeScreen
-    local HomeScreen = Screen:WaitForChild("HomeScreen")
-    local walletButton = HomeScreen:FindFirstChild("WalletApp")
-    if not walletButton then
-        -- Create wallet app button if it doesn't exist
-        -- (You'll need to implement this based on your HomeScreen structure)
+    -- Load wallet data
+    local wallet = walletData:getWallet(player.UserId)
+    if wallet then
+        state.hasWallet = true
+        state.balance = wallet.balance
+        state.transactions = wallet.transactions
+        transitionToScreen(self.Screens.MAIN)
+    else
+        transitionToScreen(self.Screens.WELCOME)
     end
     
-    -- Check if user has wallet
-    -- This would typically check some persistent data store
-    if not state.hasWallet then
-        transitionToScreen(self.Screens.WELCOME)
-    else
-        transitionToScreen(self.Screens.MAIN)
+    -- Connect UI elements
+    local welcomeScreen = Screens:WaitForChild("WelcomeScreen")
+    local createWalletButton = welcomeScreen:WaitForChild("CreateWalletButton")
+    addBouncyEffect(createWalletButton)
+    
+    createWalletButton.MouseButton1Click:Connect(function()
+        self:createWallet()
+    end)
+    
+    local mainScreen = Screens:WaitForChild("MainScreen")
+    local actionButtons = mainScreen:WaitForChild("ActionButtons")
+    
+    for _, button in ipairs(actionButtons:GetChildren()) do
+        if button:IsA("TextButton") then
+            addBouncyEffect(button)
+            button.MouseButton1Click:Connect(function()
+                if button.Name == "SendButton" then
+                    self:navigateTo("SEND")
+                elseif button.Name == "ReceiveButton" then
+                    self:navigateTo("RECEIVE")
+                end
+            end)
+        end
     end
 end
 
+-- Public methods
 function WalletController:createWallet()
     -- Wallet creation logic here
     state.hasWallet = true
