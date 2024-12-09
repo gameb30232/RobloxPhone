@@ -17,9 +17,7 @@ local function createInitialState()
         isShown = false,
         screenState = PhoneState.OFF,
         currentApp = nil,
-        lastActiveApp = nil,  -- Remember last active app when phone is hidden
-        position = UDim2.fromScale(0.85, 0.99), -- PEEK_POSITION
-        screenOn = false
+        position = UDim2.fromScale(0.85, 0.99) -- PEEK_POSITION
     }
 end
 
@@ -32,24 +30,18 @@ local POSITIONS = {
 -- Pure functions for state transformations
 local function getNextPhoneState(currentState)
     if currentState.isShown then
-        -- Phone is being hidden
         return {
             isShown = false,
             screenState = PhoneState.OFF,
-            currentApp = currentState.currentApp,  -- Preserve current app
-            lastActiveApp = currentState.currentApp,  -- Remember active app
-            position = POSITIONS.PEEK,
-            screenOn = false
+            currentApp = currentState.currentApp,
+            position = POSITIONS.PEEK
         }
     else
-        -- Phone is being shown
         return {
             isShown = true,
-            screenState = currentState.lastActiveApp and PhoneState.APP or PhoneState.HOME,
-            currentApp = currentState.lastActiveApp or nil,
-            lastActiveApp = currentState.lastActiveApp,
-            position = POSITIONS.SHOWN,
-            screenOn = true
+            screenState = currentState.currentApp and PhoneState.APP or PhoneState.HOME,
+            currentApp = currentState.currentApp,
+            position = POSITIONS.SHOWN
         }
     end
 end
@@ -59,9 +51,7 @@ local function getNextAppState(currentState, appName)
         isShown = currentState.isShown,
         screenState = PhoneState.APP,
         currentApp = appName,
-        lastActiveApp = appName,
-        position = currentState.position,
-        screenOn = currentState.screenOn
+        position = currentState.position
     }
 end
 
@@ -70,9 +60,7 @@ local function getHomeState(currentState)
         isShown = currentState.isShown,
         screenState = PhoneState.HOME,
         currentApp = nil,
-        lastActiveApp = nil,
-        position = currentState.position,
-        screenOn = currentState.screenOn
+        position = currentState.position
     }
 end
 
@@ -83,29 +71,25 @@ local function updatePhonePosition(frame, position)
     })
 end
 
-local function updateScreenVisibility(screen, isOn)
-    -- Handle overlay
+local function updateScreenVisibility(screen, state)
+    local isOn = state.isShown
+    
     spring.target(screen:WaitForChild("ScreenOverlay"), isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
         BackgroundTransparency = isOn and 1 or 0
     })
     
-    -- Base screen transparency
     spring.target(screen, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
         BackgroundTransparency = isOn and 0 or 1
     })
     
-    -- Update all GUI elements including HomeScreen and apps
     for _, child in ipairs(screen:GetChildren()) do
         if child:IsA("Frame") then
-            -- Make all screens invisible when phone is off
             child.Visible = isOn
             
-            -- Update transparencies
             spring.target(child, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
                 BackgroundTransparency = child.BackgroundTransparency < 1 and (isOn and 0 or 1) or 1
             })
             
-            -- Update all descendants of each screen
             for _, descendant in ipairs(child:GetDescendants()) do
                 if descendant:IsA("GuiObject") then
                     spring.target(descendant, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
@@ -120,12 +104,10 @@ local function updateScreenVisibility(screen, isOn)
 end
 
 local function updateAppVisibility(screen, state)
-    -- Only update app visibility if the screen is on
-    if state.screenOn then
+    if state.isShown then
         local homeScreen = screen:WaitForChild("HomeScreen")
         homeScreen.Visible = state.screenState == PhoneState.HOME
         
-        -- Update app visibilities
         for _, app in ipairs(screen:GetChildren()) do
             if app:IsA("Frame") and app.Name:match("App$") then
                 app.Visible = state.screenState == PhoneState.APP and app.Name == state.currentApp
@@ -178,7 +160,7 @@ local function createPhoneController()
         
         -- Update UI based on new state
         updatePhonePosition(PhoneFrame, state.position)
-        updateScreenVisibility(Screen, state.screenOn)
+        updateScreenVisibility(Screen, state)
         updateAppVisibility(Screen, state)
     end
     
