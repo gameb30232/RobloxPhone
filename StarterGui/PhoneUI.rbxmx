@@ -36,9 +36,9 @@
 				<bool name="AutoLocalize">true</bool>
 				<token name="AutomaticSize">0</token>
 				<Color3 name="BackgroundColor3">
-					<R>0.666666687</R>
-					<G>0.137254909</G>
-					<B>0.137254909</B>
+					<R>0.937254902</R>
+					<G>0.921568627</G>
+					<B>0.878431373</B>
 				</Color3>
 				<float name="BackgroundTransparency">0</float>
 				<Color3 name="BorderColor3">
@@ -113,9 +113,9 @@
 					<bool name="AutoLocalize">true</bool>
 					<token name="AutomaticSize">0</token>
 					<Color3 name="BackgroundColor3">
-						<R>0.400000006</R>
-						<G>0.600000024</G>
-						<B>1</B>
+						<R>0.180392157</R>
+						<G>0.756862745</G>
+						<B>0.494117647</B>
 					</Color3>
 					<float name="BackgroundTransparency">0</float>
 					<string name="Name">Screen</string>
@@ -274,6 +274,19 @@
 					<token name="DominantAxis">1</token>
 					<int64 name="SourceAssetId">-1</int64>
 					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+			</Item>
+			<Item class="UIStroke" referent="RBX_Stroke">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<Color3 name="Color">
+						<R>0.7</R>
+						<G>0.68</G>
+						<B>0.65</B>
+					</Color3>
+					<float name="Thickness">3</float>
+					<token name="LineJoinMode">1</token>
+					<string name="Name">ClayStroke</string>
 				</Properties>
 			</Item>
 		</Item>

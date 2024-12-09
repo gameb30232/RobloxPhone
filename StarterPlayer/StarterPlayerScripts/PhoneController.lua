@@ -2,6 +2,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local spring = require(game:GetService("ReplicatedStorage"):WaitForChild("modules"):WaitForChild("spring"))
+local theme = require(game:GetService("ReplicatedStorage").modules.phoneTheme)
 
 -- Wait for player and UI to load
 local player = Players.LocalPlayer
@@ -91,3 +92,33 @@ adjustForScreenSize()
 -- Initialize HomeScreen as default app
 local HomeScreen = Screen:WaitForChild("HomeScreen")
 HomeScreen.Visible = true 
+
+-- Add bouncy animation for that clay-animation feel
+local function addBouncyEffect(button)
+    button.MouseEnter:Connect(function()
+        spring.target(button, 
+            theme.animations.bounce.springParams.frequency,
+            theme.animations.bounce.springParams.dampingRatio,
+            {
+                Size = button.Size * UDim2.fromScale(1.1, 1.1)
+            }
+        )
+    end)
+    
+    button.MouseLeave:Connect(function()
+        spring.target(button,
+            theme.animations.bounce.springParams.frequency,
+            theme.animations.bounce.springParams.dampingRatio,
+            {
+                Size = button.Size
+            }
+        )
+    end)
+end
+
+-- Apply bouncy effect to all app buttons
+for _, button in ipairs(HomeScreen:GetChildren()) do
+    if button:IsA("ImageButton") then
+        addBouncyEffect(button)
+    end
+end 
