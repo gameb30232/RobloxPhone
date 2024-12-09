@@ -10,7 +10,6 @@ local playerGui = player:WaitForChild("PlayerGui")
 local PhoneUI = playerGui:WaitForChild("PhoneUI")
 local PhoneFrame = PhoneUI:WaitForChild("PhoneFrame")
 local Screen = PhoneFrame:WaitForChild("Screen")
-local DynamicIsland = Screen:WaitForChild("DynamicIsland")
 
 -- Position settings
 local SHOWN_POSITION = UDim2.fromScale(0.85, 0.5)  -- Phone fully visible
@@ -26,10 +25,44 @@ local function setPhonePosition(position)
     })
 end
 
+-- Function to toggle screen state
+local function setScreenState(on)
+    if on then
+        spring.target(Screen, 0.3, 0.8, {
+            BackgroundTransparency = 0
+        })
+        -- Fade in all children
+        for _, child in ipairs(Screen:GetDescendants()) do
+            if child:IsA("GuiObject") then
+                spring.target(child, 0.3, 0.8, {
+                    BackgroundTransparency = child.BackgroundTransparency < 1 and 0 or 1,
+                    TextTransparency = child:IsA("TextLabel") and 0 or child.TextTransparency,
+                    ImageTransparency = child:IsA("ImageLabel") and 0 or child.ImageTransparency
+                })
+            end
+        end
+    else
+        spring.target(Screen, 0.2, 0.9, {
+            BackgroundTransparency = 0.8
+        })
+        -- Fade out all children
+        for _, child in ipairs(Screen:GetDescendants()) do
+            if child:IsA("GuiObject") then
+                spring.target(child, 0.2, 0.9, {
+                    BackgroundTransparency = 1,
+                    TextTransparency = 1,
+                    ImageTransparency = 1
+                })
+            end
+        end
+    end
+end
+
 -- Function to handle phone visibility states
 local function togglePhone()
     isShown = not isShown
     setPhonePosition(isShown and SHOWN_POSITION or PEEK_POSITION)
+    setScreenState(isShown)
 end
 
 -- Handle clicking outside the phone
@@ -50,7 +83,7 @@ local function handleOutsideClick(input)
 end
 
 -- Connect input events
-DynamicIsland.InputBegan:Connect(function(input)
+PhoneFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or
        input.UserInputType == Enum.UserInputType.Touch then
         togglePhone()
@@ -64,21 +97,19 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- Initialize phone in peeking position
+-- Initialize phone in peeking position with screen off
 PhoneFrame.Position = PEEK_POSITION
+setScreenState(false)
 
 -- Adjust phone position based on screen size
 local function adjustForScreenSize()
     local viewportSize = workspace.CurrentCamera.ViewportSize
     local aspectRatio = viewportSize.X / viewportSize.Y
     
-    -- Adjust peek position based on screen aspect ratio
     if aspectRatio < 1.2 then
-        -- For taller/narrower screens
-        PEEK_POSITION = UDim2.fromScale(0.85, 0.985)  -- Shows just a tiny bit
+        PEEK_POSITION = UDim2.fromScale(0.85, 0.985)
     else
-        -- For wider screens
-        PEEK_POSITION = UDim2.fromScale(0.85, 0.99)  -- Shows just a tiny bit
+        PEEK_POSITION = UDim2.fromScale(0.85, 0.99)
     end
     
     if not isShown then
@@ -91,7 +122,7 @@ adjustForScreenSize()
 
 -- Initialize HomeScreen as default app
 local HomeScreen = Screen:WaitForChild("HomeScreen")
-HomeScreen.Visible = true 
+HomeScreen.Visible = true
 
 -- Add bouncy animation for that clay-animation feel
 local function addBouncyEffect(button)
