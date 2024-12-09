@@ -84,31 +84,52 @@ local function updatePhonePosition(frame, position)
 end
 
 local function updateScreenVisibility(screen, isOn)
-    -- Base screen transparency
-    spring.target(screen, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
-        BackgroundTransparency = isOn and 0 or 0.8
+    -- Handle overlay
+    spring.target(screen:WaitForChild("ScreenOverlay"), isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
+        BackgroundTransparency = isOn and 1 or 0
     })
     
-    -- Update all GUI elements
-    for _, child in ipairs(screen:GetDescendants()) do
-        if child:IsA("GuiObject") then
+    -- Base screen transparency
+    spring.target(screen, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
+        BackgroundTransparency = isOn and 0 or 1
+    })
+    
+    -- Update all GUI elements including HomeScreen and apps
+    for _, child in ipairs(screen:GetChildren()) do
+        if child:IsA("Frame") then
+            -- Make all screens invisible when phone is off
+            child.Visible = isOn
+            
+            -- Update transparencies
             spring.target(child, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
-                BackgroundTransparency = child.BackgroundTransparency < 1 and (isOn and 0 or 1) or 1,
-                TextTransparency = child:IsA("TextLabel") and (isOn and 0 or 1) or child.TextTransparency,
-                ImageTransparency = child:IsA("ImageLabel") and (isOn and 0 or 1) or child.ImageTransparency
+                BackgroundTransparency = child.BackgroundTransparency < 1 and (isOn and 0 or 1) or 1
             })
+            
+            -- Update all descendants of each screen
+            for _, descendant in ipairs(child:GetDescendants()) do
+                if descendant:IsA("GuiObject") then
+                    spring.target(descendant, isOn and 0.3 or 0.2, isOn and 0.8 or 0.9, {
+                        BackgroundTransparency = descendant.BackgroundTransparency < 1 and (isOn and 0 or 1) or 1,
+                        TextTransparency = descendant:IsA("TextLabel") and (isOn and 0 or 1) or descendant.TextTransparency,
+                        ImageTransparency = descendant:IsA("ImageLabel") and (isOn and 0 or 1) or descendant.ImageTransparency
+                    })
+                end
+            end
         end
     end
 end
 
 local function updateAppVisibility(screen, state)
-    local homeScreen = screen:WaitForChild("HomeScreen")
-    homeScreen.Visible = state.screenState == PhoneState.HOME
-    
-    -- Update app visibilities
-    for _, app in ipairs(screen:GetChildren()) do
-        if app:IsA("Frame") and app.Name:match("App$") then
-            app.Visible = state.screenState == PhoneState.APP and app.Name == state.currentApp
+    -- Only update app visibility if the screen is on
+    if state.screenOn then
+        local homeScreen = screen:WaitForChild("HomeScreen")
+        homeScreen.Visible = state.screenState == PhoneState.HOME
+        
+        -- Update app visibilities
+        for _, app in ipairs(screen:GetChildren()) do
+            if app:IsA("Frame") and app.Name:match("App$") then
+                app.Visible = state.screenState == PhoneState.APP and app.Name == state.currentApp
+            end
         end
     end
 end
@@ -145,6 +166,7 @@ local function createPhoneController()
     local PhoneFrame = PhoneUI:WaitForChild("PhoneFrame")
     local Screen = PhoneFrame:WaitForChild("Screen")
     local HomeScreen = Screen:WaitForChild("HomeScreen")
+    local ScreenOverlay = Screen:WaitForChild("ScreenOverlay")
     
     -- Initialize state
     local state = createInitialState()
