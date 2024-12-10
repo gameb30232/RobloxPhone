@@ -65,6 +65,12 @@
                         <G>0.921568627</G>
                         <B>0.878431373</B>
                     </Color3>
+                    <UDim2 name="Size">
+                        <XS>1</XS>
+                        <XO>0</XO>
+                        <YS>1</YS>
+                        <YO>0</YO>
+                    </UDim2>
                 </Properties>
                 
                 <Item class="ImageLabel">
@@ -128,6 +134,12 @@
                         <G>0.921568627</G>
                         <B>0.878431373</B>
                     </Color3>
+                    <UDim2 name="Size">
+                        <XS>1</XS>
+                        <XO>0</XO>
+                        <YS>1</YS>
+                        <YO>0</YO>
+                    </UDim2>
                 </Properties>
                 
                 <!-- Balance Display -->
@@ -170,7 +182,7 @@
                         <UDim2 name="Size">
                             <XS>0.9</XS>
                             <XO>0</XO>
-                            <YS>0.15</YS>
+                            <YS>0.3</YS>
                             <YO>0</YO>
                         </UDim2>
                         <UDim2 name="Position">
@@ -180,6 +192,28 @@
                             <YO>0</YO>
                         </UDim2>
                     </Properties>
+                    
+                    <!-- Add UIGridLayout -->
+                    <Item class="UIGridLayout">
+                        <Properties>
+                            <UDim2 name="CellPadding">
+                                <XS>0.05</XS>
+                                <XO>0</XO>
+                                <YS>0.05</YS>
+                                <YO>0</YO>
+                            </UDim2>
+                            <UDim2 name="CellSize">
+                                <XS>0.45</XS>
+                                <XO>0</XO>
+                                <YS>0.4</YS>
+                                <YO>0</YO>
+                            </UDim2>
+                            <token name="FillDirection">0</token>
+                            <int name="FillDirectionMaxCells">2</int>
+                            <token name="HorizontalAlignment">1</token>
+                            <token name="VerticalAlignment">1</token>
+                        </Properties>
+                    </Item>
                     
                     <!-- Send Button -->
                     <Item class="TextButton">
@@ -191,7 +225,21 @@
                                 <G>0.756862745</G>
                                 <B>0.494117647</B>
                             </Color3>
+                            <UDim2 name="Size">
+                                <XS>1</XS>
+                                <XO>0</XO>
+                                <YS>1</YS>
+                                <YO>0</YO>
+                            </UDim2>
                         </Properties>
+                        <Item class="UICorner">
+                            <Properties>
+                                <UDim name="CornerRadius">
+                                    <S>0.2</S>
+                                    <O>0</O>
+                                </UDim>
+                            </Properties>
+                        </Item>
                     </Item>
                     
                     <!-- Receive Button -->
@@ -204,10 +252,24 @@
                                 <G>0.756862745</G>
                                 <B>0.494117647</B>
                             </Color3>
+                            <UDim2 name="Size">
+                                <XS>1</XS>
+                                <XO>0</XO>
+                                <YS>1</YS>
+                                <YO>0</YO>
+                            </UDim2>
                         </Properties>
+                        <Item class="UICorner">
+                            <Properties>
+                                <UDim name="CornerRadius">
+                                    <S>0.2</S>
+                                    <O>0</O>
+                                </UDim>
+                            </Properties>
+                        </Item>
                     </Item>
                 </Item>
             </Item>
         </Item>
     </Item>
-</roblox> 
+</roblox>
