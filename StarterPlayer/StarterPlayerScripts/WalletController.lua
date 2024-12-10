@@ -130,6 +130,42 @@ function WalletController:init()
             end)
         end
     end
+    
+    -- Add tab switching functionality
+    local tabs = mainScreen:WaitForChild("Tabs")
+    
+    local function switchTab(tabName)
+        for _, tab in ipairs(tabs:GetChildren()) do
+            if tab:IsA("Frame") then
+                local isSelected = tab.Name == "Tab_"..tabName
+                tab.BackgroundColor3 = isSelected and 
+                    Color3.fromRGB(39, 39, 41) or -- Selected color
+                    Color3.fromRGB(243, 245, 246) -- Unselected color
+                
+                local textLabel = tab:FindFirstChildWhichIsA("TextLabel")
+                if textLabel then
+                    textLabel.TextColor3 = isSelected and
+                        Color3.fromRGB(227, 223, 223) or -- Selected text
+                        Color3.fromRGB(39, 39, 41)       -- Unselected text
+                end
+            end
+        end
+    end
+    
+    -- Connect tab buttons
+    for _, tab in ipairs(tabs:GetChildren()) do
+        if tab:IsA("Frame") then
+            tab.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local tabName = tab.Name:gsub("Tab_", "")
+                    switchTab(tabName)
+                end
+            end)
+        end
+    end
+    
+    -- Initial token display update
+    updateTokenDisplay()
 end
 
 -- Public methods
@@ -161,6 +197,59 @@ local function onAppStateChanged()
         transitionToScreen(state.currentScreen)
     else
         WalletApp.Visible = false
+    end
+end
+
+local function formatCurrency(amount)
+    return string.format("$%.2f", amount)
+end
+
+local function formatPercentage(percent, isPositive)
+    return string.format("%.2f%%", math.abs(percent))
+end
+
+-- Add this function to update token display
+local function updateTokenDisplay()
+    local mainScreen = Screens:WaitForChild("MainScreen")
+    local balanceCard = mainScreen:WaitForChild("BalanceCard")
+    local balanceText = balanceCard:WaitForChild("Balance")
+    
+    -- Update total balance
+    balanceText.Text = formatCurrency(state.balance)
+    
+    -- Update token list
+    local tokensList = mainScreen:WaitForChild("Tokens")
+    
+    -- Example token data - replace with actual data from your system
+    local tokens = {
+        {name = "NEAR", amount = 198.24, price = 6.34, change = 2.5, isPositive = true},
+        {name = "OCT", amount = 0.6317, price = 0.71, change = 3.87, isPositive = true},
+        {name = "DEIP", amount = 555.94874, price = 1.76, change = -0.97, isPositive = false},
+        {name = "Aurora", amount = 300, price = 3.79, change = -0.32, isPositive = false},
+        {name = "USN", amount = 205, price = 1.33, change = 38.76, isPositive = true}
+    }
+    
+    -- Update each token row
+    for i, token in ipairs(tokens) do
+        local tokenRow = tokensList:FindFirstChild(token.name.."_Token")
+        if tokenRow then
+            local amountLabel = tokenRow:FindFirstChild("Amount")
+            local priceLabel = tokenRow:FindFirstChild("Price")
+            local changeLabel = tokenRow:FindFirstChild("%")
+            
+            if amountLabel then
+                amountLabel.Text = string.format("%.8g", token.amount)
+            end
+            if priceLabel then
+                priceLabel.Text = formatCurrency(token.price)
+            end
+            if changeLabel then
+                changeLabel.Text = formatPercentage(token.change)
+                changeLabel.TextColor3 = token.isPositive and 
+                    Color3.fromRGB(95, 200, 143) or -- Green
+                    Color3.fromRGB(255, 100, 100)   -- Red
+            end
+        end
     end
 end
 

@@ -143,9 +143,8 @@
                 </Properties>
                 
                 <!-- Balance Display -->
-                <Item class="Frame">
+                <Item class="Frame" name="BalanceCard">
                     <Properties>
-                        <string name="Name">BalanceCard</string>
                         <Color3 name="BackgroundColor3">
                             <R>0.180392157</R>
                             <G>0.756862745</G>
@@ -216,14 +215,19 @@
                     </Item>
                     
                     <!-- Send Button -->
-                    <Item class="TextButton">
+                    <Item class="TextButton" name="SendButton">
                         <Properties>
                             <string name="Name">SendButton</string>
                             <string name="Text">Send</string>
                             <Color3 name="BackgroundColor3">
-                                <R>0.180392157</R>
-                                <G>0.756862745</G>
-                                <B>0.494117647</B>
+                                <R>0.152941</R>
+                                <G>0.152941</G>
+                                <B>0.160784</B>
+                            </Color3>
+                            <Color3 name="TextColor3">
+                                <R>0.891667</R>
+                                <G>0.87309</G>
+                                <B>0.87309</B>
                             </Color3>
                             <UDim2 name="Size">
                                 <XS>1</XS>
